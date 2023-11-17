@@ -1,5 +1,7 @@
 #include "csapp.h"
 
+// echo 클라이언트의 메인 루틴
+
 int main(int argc, char **argv)
 {
     int clientfd;

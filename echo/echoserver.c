@@ -1,5 +1,7 @@
 #include "csapp.h"
 
+// 반복적 echo 서버 메인 루틴
+
 void echo(int connfd);
 
 int main(int argc, char **argv)
