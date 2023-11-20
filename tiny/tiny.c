@@ -11,9 +11,9 @@
 void doit(int fd);
 void read_requesthdrs(rio_t *rp);
 int parse_uri(char *uri, char *filename, char *cgiargs);
-void serve_static(int fd, char *filename, int filesize);
+void serve_static(int fd, char *filename, int filesize, char *method);
 void get_filetype(char *filename, char *filetype);
-void serve_dynamic(int fd, char *filename, char *cgiargs);
+void serve_dynamic(int fd, char *filename, char *cgiargs, char *method);
 void clienterror(int fd, char *cause, char *errnum, char *shortmsg,
                  char *longmsg);
 
@@ -60,12 +60,13 @@ void doit(int fd)
   printf("Request header:\n");
   printf("%s", buf); // 그대로 출력?
   sscanf(buf, "%s %s %s", method, uri, version);
-  if (strcasecmp(method, "GET")) //?
+  if (strcasecmp(method, "GET") && strcasecmp(method, "HEAD"))
   {
     clienterror(fd, method, "501", "Not implemented",
                 "Tiny does not implement this method");
     return;
   }
+
   read_requesthdrs(&rio);
 
   is_static = parse_uri(uri, filename, cgiargs);
@@ -84,7 +85,7 @@ void doit(int fd)
                   "Tiny couldn't read the file");
       return;
     }
-    serve_static(fd, filename, sbuf.st_size);
+    serve_static(fd, filename, sbuf.st_size, method);
   }
   else
   { /* Execute by owner.  */
@@ -94,7 +95,7 @@ void doit(int fd)
                   "Tiny couldn't run the CGI program");
       return;
     }
-    serve_dynamic(fd, filename, cgiargs);
+    serve_dynamic(fd, filename, cgiargs, method);
   }
 }
 
@@ -144,7 +145,7 @@ int parse_uri(char *uri, char *filename, char *cgiargs)
     strcpy(filename, "."); // 파일이름을 `./index.html`형식으로 만든다.
     strcat(filename, uri); // 두 개의 문자열을 연결(Concatenate)하는 데 사용
 
-    if (uri[strlen(uri) - 1] == '/') //?
+    if (uri[strlen(uri) - 1] == '/') // www.aol.com/가 원소 12개이고, 인덱스가 0부터 시작하므로 -1
       strcat(filename, "home.html"); // www.aol.com/home.html
     return 1;
   }
@@ -167,27 +168,32 @@ int parse_uri(char *uri, char *filename, char *cgiargs)
   }
 }
 
-void serve_static(int fd, char *filename, int filesize)
+void serve_static(int fd, char *filename, int filesize, char *method)
 {
   int srcfd;
   char *srcp, filetype[MAXLINE], buf[MAXBUF];
 
   /* Send response headers to client */
   get_filetype(filename, filetype);
-  sprintf(buf, "HTTP/1.0 200 OK\r\n"); // `HTTP/1.0 200 OK\r\n` buf에 넣기 
+  sprintf(buf, "HT TP/1.0 200 OK\r\n"); // `HTTP/1.0 200 OK\r\n` buf에 넣기 
   sprintf(buf, "%sServer: Tiny Web Server\r\n", buf); // `HTTP/1.0 200 OK\r\nServer: Tiny Web Server\r\n` 를 buf에 넣는다.
   sprintf(buf, "%sConnection: close\r\n", buf);
   sprintf(buf, "%sContent-length: %d\r\n", buf, filesize);
   sprintf(buf, "%sContent-type: %s\r\n\r\n", buf, filetype);
-  Rio_writen(fd, buf, strlen(buf));
+  Rio_writen(fd, buf,strlen(buf));
   printf("Response headers:\n");
   printf("%s", buf); // 응답 헤더 출력
-  
+
+  // if (*method == "HEAD")  
+    // return;                
+  if (!strcasecmp(method, "HEAD"))  
+    return;                         
+
   /* Send response body to client */
   srcfd = Open(filename, O_RDONLY, 0); // 함수를 호출하여 요청된 파일을 읽기 전용 모드로 연다.
   // srcp = Mmap(0, filesize, PROT_READ, MAP_PRIVATE, srcfd, 0);
   srcp = (char *)malloc(filesize);
-  Rio_readn(fd, srcp, filesize);
+  Rio_readn(srcfd, srcp, filesize);
   Close(srcfd); // 썼으면 제자리에
   Rio_writen(fd, srcp, filesize); // 주소 srcp에서 시작하는 filesize 크기 만큼의 바이트를 fd에 복사
   // Munmap(srcp, filesize); // 메모리 누수를 막기위한 가상메모리 주소 반환
@@ -217,19 +223,28 @@ void get_filetype(char *filename, char *filetype)
 }
 
 // ?
-void serve_dynamic(int fd, char *filename, char *cgiargs) 
-{
-  char buf[MAXLINE], *emptylist[] = { NULL };
+void serve_dynamic(int fd, char *filename, char *cgiargs, char *method) 
+{                     // 동적으로 늘어나지 않음!
+  char buf[MAXLINE], *emptylist[] = { NULL }; // NULL이 있어야 emptylist의 끝을 알려준다!!
 
   sprintf(buf, "HTTP/1.0 200 OK\r\n");
   Rio_writen(fd, buf, strlen(buf));
   sprintf(buf, "Server: Tiny Web Server\r\n");
   Rio_writen(fd, buf, strlen(buf));
 
+  if (!strcasecmp(method, "HEAD"))
+    return;
+
+  // if (method == "HEAD")
+  // return; 
+
+  // if (*method == "HEAD")  
+  //   return;
+
   if (Fork() == 0)
   {
     setenv("QUERY_STRING", cgiargs, 1);
-    Dup2(fd, STDOUT_FILENO);
+    Dup2(fd, STDOUT_FILENO); // stdout으로 fd에 입력한다
     Execve(filename, emptylist, environ); // environ: 환경변수 가리키는 리스트
   }
   Wait(NULL);
