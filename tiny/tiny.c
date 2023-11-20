@@ -185,10 +185,13 @@ void serve_static(int fd, char *filename, int filesize)
   
   /* Send response body to client */
   srcfd = Open(filename, O_RDONLY, 0); // 함수를 호출하여 요청된 파일을 읽기 전용 모드로 연다.
-  srcp = Mmap(0, filesize, PROT_READ, MAP_PRIVATE, srcfd, 0);
+  // srcp = Mmap(0, filesize, PROT_READ, MAP_PRIVATE, srcfd, 0);
+  srcp = (char *)malloc(filesize);
+  Rio_readn(fd, srcp, filesize);
   Close(srcfd); // 썼으면 제자리에
   Rio_writen(fd, srcp, filesize); // 주소 srcp에서 시작하는 filesize 크기 만큼의 바이트를 fd에 복사
-  Munmap(srcp, filesize); // 메모리 누수를 막기위한 가상메모리 주소 반환
+  // Munmap(srcp, filesize); // 메모리 누수를 막기위한 가상메모리 주소 반환
+  free(srcp);
 }
 
 /*

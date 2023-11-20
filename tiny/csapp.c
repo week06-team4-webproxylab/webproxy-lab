@@ -744,6 +744,7 @@ void V(sem_t *sem)
 
 /*
  * rio_readn - Robustly read n bytes (unbuffered)
+ * 버퍼에 있는 바이트를 식별자에 복사
  */
 /* $begin rio_readn */
 ssize_t rio_readn(int fd, void *usrbuf, size_t n) 
