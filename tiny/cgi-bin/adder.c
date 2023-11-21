@@ -43,5 +43,7 @@ int main(void)
   fflush(stdout);
 
   exit(0);
-}
+} 
+
+  
 /* $end adder */
