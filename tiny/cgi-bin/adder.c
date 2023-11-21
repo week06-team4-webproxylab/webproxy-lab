@@ -9,7 +9,7 @@ int main(void)
   char *buf, *p;
   char arg1[MAXLINE], arg2[MAXLINE], content[MAXLINE];
   int n1 = 0, n2 = 0;
-
+            // CSAPP 8.4에 설명 있음, 쿼리 스트링 반환, buf는 포인터
   if ((buf = getenv("QUERY_STRING")) != NULL)
   { // buf에 쿼리 스트링 들어가있다.
     printf("adder.c의 buf: %s\n", buf);
@@ -21,9 +21,11 @@ int main(void)
     n2 = atoi(arg2);
   }
 
-  /* Make the response body */
-  sprintf(content, "QUERY_STRING=%s", buf);
-  sprintf(content, "Welcome to add.com: ");
+  /* Make the response body */ 
+  sprintf(content, "QUERY_STRING=%s\r\n", buf); // buf를 %s에 대입하고, 전체 문자열을 content에 넣는다.
+  sprintf(content, "Welcome to add.com: "); // 하지만 여기에서 content가 덮어 씌워짐 
+                                            // 따라서 위에 buf는 content에 buf를 전달하기 위한 
+                                            // 매개로 쓰였다는 것을 유추 할 수 있다.
   sprintf(content, "%sTHE Internet addition portal.\r\n<p>", content);
   sprintf(content, "%sThe answer is: %d + %d = %d\r\n<p>",
           content, n1, n2, n1 + n2);
