@@ -175,7 +175,7 @@ void serve_static(int fd, char *filename, int filesize, char *method)
 
   /* Send response headers to client */
   get_filetype(filename, filetype);
-  sprintf(buf, "HT TP/1.0 200 OK\r\n"); // `HTTP/1.0 200 OK\r\n` buf에 넣기 
+  sprintf(buf, "HTTP/1.0 200 OK\r\n"); // `HTTP/1.0 200 OK\r\n` buf에 넣기 
   sprintf(buf, "%sServer: Tiny Web Server\r\n", buf); // `HTTP/1.0 200 OK\r\nServer: Tiny Web Server\r\n` 를 buf에 넣는다.
   sprintf(buf, "%sConnection: close\r\n", buf);
   sprintf(buf, "%sContent-length: %d\r\n", buf, filesize);
