@@ -254,4 +254,3 @@ void serve_dynamic(int fd, char *filename, char *cgiargs, char *method)
   }
   Wait(NULL);
 }
-
