@@ -13,12 +13,16 @@ int main(void)
   if ((buf = getenv("QUERY_STRING")) != NULL)
   { // buf에 쿼리 스트링 들어가있다.
     printf("adder.c의 buf: %s\n", buf);
+    
     p = strchr(buf, '&');
     *p = '\0'; // `&`를 NULL로 바꿈
-    strcpy(arg1, buf);
-    strcpy(arg2, p+1);
-    n1 = atoi(arg1);
-    n2 = atoi(arg2);
+    // strcpy(arg1, buf);
+    // strcpy(arg2, p+1);
+    // n1 = atoi(arg1);
+    // n2 = atoi(arg2);
+
+    sscanf(buf, "first=%d", &n1);
+    sscanf(p+1, "second=%d", &n2);
   }
 
   /* Make the response body */ 

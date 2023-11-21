@@ -55,8 +55,13 @@ void doit(int fd)
 
   // 버퍼(rio) 주소, 식별자fd와 연결
   Rio_readinitb(&rio, fd);
-  //
-  Rio_readlineb(&rio, buf, MAXLINE);
+  
+  // 무한 루프 문제를 위한 조건문
+  if (!(Rio_readlineb(&rio, buf, MAXLINE)))
+  {
+    return;
+  }
+
   printf("Request header:\n");
   printf("%s", buf); // 그대로 출력?
   sscanf(buf, "%s %s %s", method, uri, version);
