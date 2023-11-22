@@ -30,6 +30,7 @@ int main(void)
   sprintf(content, "Welcome to add.com: "); // 하지만 여기에서 content가 덮어 씌워짐 
                                             // 따라서 위에 buf는 content에 buf를 전달하기 위한 
                                             // 매개로 쓰였다는 것을 유추 할 수 있다.
+
   sprintf(content, "%sTHE Internet addition portal.\r\n<p>", content);
   sprintf(content, "%sThe answer is: %d + %d = %d\r\n<p>",
           content, n1, n2, n1 + n2);

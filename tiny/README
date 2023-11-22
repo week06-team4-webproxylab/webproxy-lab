@@ -36,6 +36,8 @@ Files:
   cgi-bin/adder.c	CGI program that adds two numbers
   cgi-bin/Makefile	Makefile for adder.c
 
+<<<<<<< HEAD
+=======
 #####################################################
 GPT 번역
 
@@ -68,3 +70,4 @@ godzilla.gif home.html에 포함된 이미지
 README 이 파일
 cgi-bin/adder.c 두 숫자를 더하는 CGI 프로그램
 cgi-bin/Makefile adder.c를 위한 메이크파일
+>>>>>>> 80af903c9975f631ef0e336cd2411adbc1237b49
