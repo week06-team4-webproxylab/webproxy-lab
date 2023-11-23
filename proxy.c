@@ -37,9 +37,9 @@ int main(int argc, char **argv)
   while (1)
   {
     clientlen = sizeof(clientaddr);
-    clientfd = Malloc(sizeof(int));
+    clientfd = Malloc(sizeof(int)); // 클라이언트 정보를 가지고 있는 fd를 동적 할당
     *clientfd = Accept(listenfd, (SA *)&clientaddr, &clientlen); // 클라이언트 연결 요청 수신
-    Getnameinfo((SA *)&clientaddr, clientlen, client_hostname, MAXLINE, client_port, MAXLINE, 0);
+    Getnameinfo((SA *)&clientaddr, clientlen, client_hostname, MAXLINE, client_port, MAXLINE, 0); // 클라이언트의 정보를 가져오는 함수
     printf("Accepted connection from (%s, %s)\n", client_hostname, client_port);
     Pthread_create(&tid, NULL, thread, clientfd); // Concurrent 프록시
   }
@@ -56,20 +56,21 @@ void *thread(void *vargp)
 }
 
 void doit(int clientfd)
-{
+{ 
+  printf("doit 시작\n");
   int serverfd, content_length;
   char request_buf[MAXLINE], response_buf[MAXLINE];
   char method[MAXLINE], uri[MAXLINE], path[MAXLINE], hostname[MAXLINE], port[MAXLINE];
   char *response_ptr, filename[MAXLINE], cgiargs[MAXLINE];
   rio_t request_rio, response_rio;
 
-  /* 1️⃣ -1) Request Line 읽기 [🙋‍♀️ Client -> 🚒 Proxy] */
-  Rio_readinitb(&request_rio, clientfd);
-  Rio_readlineb(&request_rio, request_buf, MAXLINE);
-  printf("Request headers:\n %s\n", request_buf);
+  /* 1️⃣ -1) Request Line 읽기 [🙋‍♀️ Client -> 🚒 Proxy] */ // 버퍼에 넣는 과정
+  Rio_readinitb(&request_rio, clientfd);  // request_rio주소값에 clientfd를 넣음(init)
+  Rio_readlineb(&request_rio, request_buf, MAXLINE); // buf 만들고 request_rio를 넣음
+  printf("Request headers:\n %s\n", request_buf); 
 
   // 요청 라인 parsing을 통해 `method, uri, hostname, port, path` 찾기
-  sscanf(request_buf, "%s %s", method, uri);
+  sscanf(request_buf, "%s %s", method, uri); // request_buf의 method, uri를 얻는다.(스캔)
   parse_uri(uri, hostname, port, path);
 
   // Server에 전송하기 위해 요청 라인의 형식 변경: `method uri version` -> `method path HTTP/1.0`
@@ -94,7 +95,7 @@ void doit(int clientfd)
 
   /* 1️⃣ -2) Request Line 전송 [🚒 Proxy -> 💻 Server] */
   // Server 소켓 생성
-  serverfd = is_local_test ? Open_clientfd(hostname, port) : Open_clientfd("52.79.234.188", port);
+  serverfd = is_local_test ? Open_clientfd(hostname, port) : Open_clientfd("54.180.140.27", port);
   if (serverfd < 0)
   {
     clienterror(serverfd, method, "502", "Bad Gateway", "📍 Failed to establish connection with the end server");
@@ -133,6 +134,7 @@ void doit(int clientfd)
     free(response_ptr); // 캐싱하지 않은 경우만 메모리 반환
 
   Close(serverfd);
+  printf("doit 끝\n");
 }
 
 // 클라이언트에 에러를 전송하는 함수
@@ -167,15 +169,17 @@ void clienterror(int fd, char *cause, char *errnum, char *shortmsg, char *longms
 // uri 형태: `http://hostname:port/path` 혹은 `http://hostname/path` (port는 optional)
 void parse_uri(char *uri, char *hostname, char *port, char *path)
 {
+  printf("parse_uri 시작\n");
   // host_name의 시작 위치 포인터: '//'가 있으면 //뒤(ptr+2)부터, 없으면 uri 처음부터
   char *hostname_ptr = strstr(uri, "//") ? strstr(uri, "//") + 2 : uri;
   char *port_ptr = strchr(hostname_ptr, ':'); // port 시작 위치 (없으면 NULL)
   char *path_ptr = strchr(hostname_ptr, '/'); // path 시작 위치 (없으면 NULL)
   strcpy(path, path_ptr);
 
+  // 포트 유무에 따라 
   if (port_ptr) // port 있는 경우
-  {
-    strncpy(port, port_ptr + 1, path_ptr - port_ptr - 1); 
+  { // 3번째 인자 수 만큼 2번째 문자열을 복사해서 1번째 인자에 넣기.
+    strncpy(port, port_ptr + 1, path_ptr - port_ptr - 1);
     strncpy(hostname, hostname_ptr, port_ptr - hostname_ptr);
   }
   else // port 없는 경우
@@ -186,19 +190,22 @@ void parse_uri(char *uri, char *hostname, char *port, char *path)
       strcpy(port, "8000");
     strncpy(hostname, hostname_ptr, path_ptr - hostname_ptr);
   }
+  printf("parse_uri 끝\n");
 }
 
 // Request Header를 읽고 Server에 전송하는 함수
 // 필수 헤더가 없는 경우에는 필수 헤더를 추가로 전송
 void read_requesthdrs(rio_t *request_rio, void *request_buf, int serverfd, char *hostname, char *port)
 {
+  // 필수 요청 헤더들
   int is_host_exist;
   int is_connection_exist;
   int is_proxy_connection_exist;
   int is_user_agent_exist;
 
+  // request_rio를 MAXLINE만큼 읽고 request_buf에 넣는다.
   Rio_readlineb(request_rio, request_buf, MAXLINE); // 첫번째 줄 읽기
-  while (strcmp(request_buf, "\r\n"))
+  while (strcmp(request_buf, "\r\n")) // 다르면 1 반환 즉, \r\n이 나올 때까지 반복
   {
     if (strstr(request_buf, "Proxy-Connection") != NULL)
     {
@@ -238,7 +245,7 @@ void read_requesthdrs(rio_t *request_rio, void *request_buf, int serverfd, char 
   if (!is_host_exist)
   {
     if (!is_local_test)
-      hostname = "52.79.234.188";
+      hostname = "54.180.140.27";
     sprintf(request_buf, "Host: %s:%s\r\n", hostname, port);
     Rio_writen(serverfd, request_buf, strlen(request_buf));
   }
@@ -252,3 +259,4 @@ void read_requesthdrs(rio_t *request_rio, void *request_buf, int serverfd, char 
   Rio_writen(serverfd, request_buf, strlen(request_buf));
   return;
 }
+
